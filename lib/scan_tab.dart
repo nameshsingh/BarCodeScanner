@@ -28,7 +28,7 @@ Future<void> _launchUrl(String url) async {
 // Future<String> fetchProductInfo(String eanCode) async {
 //   // Replace with the actual API endpoint and API key if needed
 //   var url = Uri.parse('https://api.example.com/products/$eanCode');
-  
+
 //   try {
 //     var response = await http.get(url);
 //     if (response.statusCode == 200) {
@@ -73,67 +73,113 @@ class _ScanTabState extends State<ScanTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Expanded(
-          flex: 5,
-          child: QRView(
-            key: qrKey,
-            onQRViewCreated: _onQRViewCreated,
-            overlay: QrScannerOverlayShape(
-              borderColor: Colors.blue,
-              borderRadius: 10,
-              borderLength: 30,
-              borderWidth: 10,
-              cutOutSize: MediaQuery.of(context).size.width * 0.8,
+    // Using theme for consistent styling
+    var theme = Theme.of(context) ?? ThemeData();
+    
+    debugPrint('theme: $theme');
+
+    return Padding(
+      padding: const EdgeInsets.all(12.0), // Add some padding around the column
+      child: Column(
+        children: <Widget>[
+          Expanded(
+            flex: 5,
+            child: buildQrView(
+                context), // Refactor QR view into a method for better readability
+          ),
+          SizedBox(
+              height:
+                  20), // Provide some spacing between the QR view and the text
+          Expanded(
+            flex: 1,
+            child: Center(
+              child: (result != null)
+                  ? buildScanResultWidget(theme)
+                  : Text('Scan a code', style: theme.textTheme.headline6),
             ),
-          ),
-        ),
-        Expanded(
-          flex: 1,
-          child: Center(
-            child: (result != null)
-                ? buildScanResultWidget()
-                : Text('Scan a code'),
-          ),
-        )
-      ],
+          )
+        ],
+      ),
     );
   }
 
-   Widget buildScanResultWidget() {
+  // Refactor QR view building into its own method
+  Widget buildQrView(BuildContext context) {
+    return QRView(
+      key: qrKey,
+      onQRViewCreated: _onQRViewCreated,
+      overlay: QrScannerOverlayShape(
+        borderColor: Theme.of(context).primaryColor,
+        borderRadius: 12,
+        borderLength: 20,
+        borderWidth: 10,
+        cutOutSize: MediaQuery.of(context).size.width * 0.8,
+      ),
+    );
+  }
+
+  Widget buildScanResultWidget(ThemeData theme) {
     if (result == null) {
-      return Text('Scan a code');
+      return Text(
+        'Scan a code',
+        style: theme.textTheme.headline6,
+      );
     }
+
     // Show the loader or product info if available
     if (isLoading) {
       return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('Fetching product info...'),
+          Text(
+            'Fetching product info...',
+            style: theme.textTheme.subtitle1,
+          ),
           SizedBox(height: 10),
-          CircularProgressIndicator(),
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
+          ),
         ],
       );
     }
+
     if (productInfo != null) {
-      return Text('Product Info: $productInfo');
+      return Text(
+        'Product Info: $productInfo',
+        style: theme.textTheme.subtitle1,
+      );
     }
+
     if (isUrl(result!.code)) {
       return InkWell(
-        onTap: () => _launchUrl(result!
-                                .code!),
+        onTap: () => _launchUrl(result!.code!),
         child: Text(
           'Open Link: ${result!.code}',
           style: TextStyle(
-            color: Colors.blue,
+            color: theme.colorScheme.secondary,
             decoration: TextDecoration.underline,
           ),
         ),
       );
     }
-    return Text('Barcode Type: ${result!.format.name}   Data: ${result!.code}');
-  }
 
+    // Default case for displaying barcode type and data
+    return Column(
+      children: [
+        Text(
+          'Barcode Type: ${result!.format.name}',
+          style: TextStyle(
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'Data: ${result!.code}',
+          style: theme.textTheme.bodyText2,
+        ),
+      ],
+    );
+  }
 
   void _onQRViewCreated(QRViewController controller) {
     setState(() {
